@@ -1,3 +1,3 @@
 # myblog
 
-* A blog write by Beego.It's nott finish yet.
+* A blog write by Beego.It's not finish yet.
