@@ -20,6 +20,7 @@ type Topic struct {
 	Id              int64
 	Title           string
 	Uid             int64
+	Category        string
 	Attachment      string
 	Content         string    `orm:"size(5000)"`
 	Created         time.Time `orm:"index"`
@@ -31,21 +32,70 @@ type Topic struct {
 	ReplyLastUserId int64
 }
 
-func init() {
-	orm.RegisterModel(new(Category), new(Topic))
+type Comment struct {
+	Id      int64
+	Tid     int64
+	Name    string
+	Content string    `orm:"size(5000)"`
+	Created time.Time `orm:"index"`
 }
 
-func AddTopic(title, content string) error {
+func init() {
+	orm.RegisterModel(new(Category), new(Topic), new(Comment))
+}
+
+func AddComment(tid, name, content string) error {
+	o := orm.NewOrm()
+
+	cid, err := strconv.ParseInt(tid, 10, 64)
+	if err != nil {
+		return err
+	}
+
+	comment := &Comment{
+		Tid:     cid,
+		Name:    name,
+		Content: content,
+		Created: time.Now(),
+	}
+	_, err = o.Insert(comment)
+
+	topic := new(Topic)
+
+	qs := o.QueryTable("topic")
+	err = qs.Filter("id", cid).One(topic)
+	if err != nil {
+		return err
+	}
+
+	topic.ReplyCount++
+	_, err = o.Update(topic)
+	return err
+}
+
+func AddTopic(title, category, content string) error {
 	o := orm.NewOrm()
 
 	topic := &Topic{
 		Title:     title,
+		Category:  category,
 		Content:   content,
 		Created:   time.Now(),
 		Updated:   time.Now(),
 		ReplyTime: time.Now(),
 	}
-	_, err := o.Insert(topic)
+	cate := new(Category)
+	qs := o.QueryTable("category")
+	err := qs.Filter("title", category).One(cate)
+	if err != nil {
+		return err
+	}
+	cate.TopicCount++
+	_, err = o.Update(cate)
+	if err != nil {
+		return err
+	}
+	_, err = o.Insert(topic)
 	return err
 }
 
@@ -85,6 +135,19 @@ func GetAllTopics(isDesc bool) (topics []*Topic, err error) {
 	}
 	return topics, err
 }
+
+func GetCateTopics(category string) ([]*Topic, error) {
+	o := orm.NewOrm()
+	topic := make([]*Topic, 0)
+
+	qs := o.QueryTable("topic")
+	_, err := qs.Filter("category", category).All(&topic)
+	if err != nil {
+		return nil, err
+	}
+	return topic, err
+}
+
 func GetAllCategories() ([]*Category, error) {
 	o := orm.NewOrm()
 
@@ -95,16 +158,65 @@ func GetAllCategories() ([]*Category, error) {
 	return cates, err
 }
 
-func DelTopic(id string) error {
+func GetAllComment(tid string) ([]*Comment, error) {
+	o := orm.NewOrm()
+	cid, err := strconv.ParseInt(tid, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	comm := make([]*Comment, 0)
+	qs := o.QueryTable("comment")
+	_, err = qs.Filter("tid", cid).All(&comm)
+	if err != nil {
+		return nil, err
+	}
+
+	return comm, err
+}
+
+func DelTopic(id, category string) error {
 	cid, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
 		return err
 	}
 	o := orm.NewOrm()
 
+	cate := new(Category)
+	qs := o.QueryTable("category")
+	err = qs.Filter("title", category).One(cate)
+	if err != nil {
+		return err
+	}
+	cate.TopicCount--
+	_, err = o.Update(cate)
+	if err != nil {
+		return err
+	}
+
 	topic := &Topic{Id: cid}
 
 	_, err = o.Delete(topic)
+	return err
+}
+
+func DelComment(id, tid string) error {
+	cid, err := strconv.ParseInt(id, 10, 64)
+	if err != nil {
+		return err
+	}
+	o := orm.NewOrm()
+	topic := new(Topic)
+	qs := o.QueryTable("topic")
+	err = qs.Filter("id", tid).One(topic)
+	topic.ReplyCount--
+	if err != nil {
+		return err
+	}
+	_, err = o.Update(topic)
+
+	comment := &Comment{Id: cid}
+	_, err = o.Delete(comment)
 	return err
 }
 func DelCategory(id string) error {
@@ -121,7 +233,7 @@ func DelCategory(id string) error {
 	return err
 }
 
-func ModifyTopic(id, title, content string) error {
+func ModifyTopic(id, title, category, content string) error {
 	cid, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
 		return err
@@ -130,6 +242,7 @@ func ModifyTopic(id, title, content string) error {
 	topic := &Topic{Id: cid}
 	if o.Read(topic) == nil {
 		topic.Title = title
+		topic.Category = category
 		topic.Content = content
 		topic.Updated = time.Now()
 	}

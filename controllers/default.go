@@ -19,5 +19,10 @@ func (c *MainController) Get() {
 	if err != nil {
 		beego.Error(err)
 	}
+	category, err := models.GetAllCategories()
+	if err != nil {
+		beego.Error(err)
+	}
+	c.Data["Category"] = category
 	c.Data["Topics"] = topics
 }

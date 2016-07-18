@@ -1,5 +1,5 @@
 {{template "header"}}
-    <title>Home - My Beego Blog</title>
+    <title>Category - My Beego Blog</title>
 </head>
 <body>
 <nav class="navbar navbar-default">
@@ -8,12 +8,15 @@
   </div>
 </nav>
 
-<div class="container">
+<div class="container" >
+	<div class="col-md-1"></div>
+	<div class="col-md-10">
 	<h1>Category</h1>
-	<form method="GET" action="/category">
+	<form class="form-inline" method="GET" action="/category">
 		  <div class="form-group">
-		  <label>Category</label>
+
 		  <input id="name" class="form-control" placeholder="name" name="name">
+		  
 		  </div>
 		  <input type="hidden" name="op" value="add">
 		  <button type="submit" class="btn btn-default" onclick="return checkInput();">Add
@@ -39,10 +42,13 @@
 				</tr>
 			</thead>
 			<thead>
+			{{$l:=.IsLogin}}
 			{{range .Categories}}
 			<tr>
 				<th>{{.Id}}</th>
-				<th>{{.Title}}</th>
+				<th>
+					<a {{if $l}} href="/category/{{.Title}}"{{end}}>{{.Title}}</a>
+					</th>
 				<th>{{.TopicCount}}</th>
 				<th>
 					<a href="/category?op=del&id={{.Id}}">delete</a>
@@ -52,5 +58,6 @@
 			</thead>
 		</table>
 </div>
+	</div>
 </body>
 </html>

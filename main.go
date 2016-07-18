@@ -26,9 +26,11 @@ func main() {
 
 	category := new(models.Category)
 	topic := new(models.Topic)
+	comment := new(models.Comment)
 
 	o.Insert(category)
 	o.Insert(topic)
+	o.Insert(comment)
 
 	beego.Run()
 }

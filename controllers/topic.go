@@ -10,6 +10,27 @@ type TopicController struct {
 }
 
 func (this *TopicController) Get() {
+	id := this.Ctx.Input.Param(":id")
+	if len(id) != 0 {
+
+		this.Data["IsTopic"] = true
+		this.TplName = "topic_view.tpl"
+		this.Data["IsLogin"] = checkAccount(this.Ctx)
+
+		topic, err := models.ViewTopic(id)
+		if err != nil {
+			beego.Error(err)
+		}
+
+		comment, err := models.GetAllComment(id)
+		if err != nil {
+			beego.Error(err)
+		}
+
+		this.Data["Topic"] = topic
+		this.Data["Comment"] = comment
+		return
+	}
 	this.Data["IsTopic"] = true
 	this.TplName = "topic.tpl"
 
@@ -28,8 +49,12 @@ func (this *TopicController) Add() {
 		this.Redirect("/login", 302)
 		return
 	}
-
+	category, err := models.GetAllCategories()
+	if err != nil {
+		beego.Error(err)
+	}
 	this.Data["IsLogin"] = checkAccount(this.Ctx)
+	this.Data["Category"] = category
 }
 
 func (this *TopicController) Post() {
@@ -38,18 +63,19 @@ func (this *TopicController) Post() {
 		return
 	}
 	title := this.Input().Get("title")
+	category := this.Input().Get("category")
 	content := this.Input().Get("content")
-	id := this.Input().Get(("id"))
+	id := this.Input().Get("id")
 	var err error
 	if len(id) == 0 {
-		err = models.AddTopic(title, content)
+		err = models.AddTopic(title, category, content)
 	} else {
-		err = models.ModifyTopic(id, title, content)
+		err = models.ModifyTopic(id, title, category, content)
 	}
 	if err != nil {
 		beego.Error(err)
 	}
-	this.Redirect("/topic", 302)
+	this.Redirect("/topic/"+id, 302)
 }
 func (this *TopicController) Delete() {
 	if !checkAccount(this.Ctx) {
@@ -57,8 +83,9 @@ func (this *TopicController) Delete() {
 		return
 	}
 	id := this.Ctx.Input.Param("0")
+	category := this.Ctx.Input.Param("1")
 
-	err := models.DelTopic(id)
+	err := models.DelTopic(id, category)
 	if err != nil {
 		beego.Error(err)
 	}
@@ -80,20 +107,12 @@ func (this *TopicController) Modify() {
 	if err != nil {
 		beego.Error(err)
 	}
-	this.Data["Topic"] = topic
-	this.Data["Id"] = id
-}
 
-func (this *TopicController) View() {
-	this.Data["IsTopic"] = true
-	this.TplName = "topic_view.tpl"
-	this.Data["IsLogin"] = checkAccount(this.Ctx)
-
-	id := this.Ctx.Input.Param("0")
-
-	topic, err := models.ViewTopic(id)
+	category, err := models.GetAllCategories()
 	if err != nil {
 		beego.Error(err)
 	}
 	this.Data["Topic"] = topic
+	this.Data["Id"] = id
+	this.Data["Category"] = category
 }
