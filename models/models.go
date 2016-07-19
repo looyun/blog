@@ -240,13 +240,36 @@ func ModifyTopic(id, title, category, content string) error {
 	}
 	o := orm.NewOrm()
 	topic := &Topic{Id: cid}
+	var oldcate string
 	if o.Read(topic) == nil {
+		oldcate = topic.Category
 		topic.Title = title
 		topic.Category = category
 		topic.Content = content
 		topic.Updated = time.Now()
 	}
+
 	o.Update(topic)
+
+	if oldcate != topic.Category {
+		cate := new(Category)
+		qs := o.QueryTable("category")
+		err = qs.Filter("title", oldcate).One(cate)
+		if err != nil {
+			return err
+		}
+		cate.TopicCount--
+		o.Update(cate)
+
+		cate = new(Category)
+		qs = o.QueryTable("category")
+		err = qs.Filter("title", topic.Category).One(cate)
+		if err != nil {
+			return err
+		}
+		cate.TopicCount++
+		o.Update(cate)
+	}
 	return nil
 
 }
