@@ -240,11 +240,11 @@ func DelCategory(id string) error {
 func ModifyTopic(id, title, category, content, attachment string) error {
 	cid, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
-		return err
+		beego.Error(err)
 	}
 	o := orm.NewOrm()
 	topic := &Topic{Id: cid}
-
+	o.Read(topic)
 	var oldcate string
 	oldcate = topic.Category
 

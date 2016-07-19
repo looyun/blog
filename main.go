@@ -26,7 +26,6 @@ func main() {
 	o.Using("default")
 
 	os.Mkdir("attachment", os.ModePerm)
-	beego.SetStaticPath("/attachment", "attachment")
 
 	category := new(models.Category)
 	topic := new(models.Topic)

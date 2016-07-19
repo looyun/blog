@@ -72,30 +72,35 @@ func (this *TopicController) Post() {
 	content := this.Input().Get("content")
 	id := this.Input().Get("id")
 
-	_, fh, err := this.GetFile("attachment")
-	if err != nil {
-		beego.Error(err)
-	}
-
 	var attachment string
+	_, fh, _ := this.GetFile("attachment")
+
 	if fh != nil {
 		attachment = fh.Filename
 		beego.Info(attachment)
 	}
+
 	if len(id) == 0 {
 		tid, err := models.AddTopic(title, category, content, attachment)
 		if err != nil {
 			beego.Error(err)
 		}
+
 		os.Mkdir(path.Join("attachment", string(tid)), os.ModePerm)
 		err = this.SaveToFile("attachment", path.Join("attachment", string(tid), attachment))
+		if err != nil {
+			beego.Error(err)
+		}
 	} else {
 		oldAttach := this.Input().Get("oldAttach")
 		if oldAttach != attachment {
 			os.Remove(path.Join("attachment", id, oldAttach))
 		}
-		if len(attachment) == 0 {
+		if fh == nil {
 			err = models.ModifyTopic(id, title, category, content, oldAttach)
+			if err != nil {
+				beego.Error(err)
+			}
 		} else {
 			os.Mkdir(path.Join("attachment", id), os.ModePerm)
 			err = this.SaveToFile("attachment", path.Join("attachment", id, attachment))
@@ -103,10 +108,10 @@ func (this *TopicController) Post() {
 				beego.Error(err)
 			}
 			err = models.ModifyTopic(id, title, category, content, attachment)
+			if err != nil {
+				beego.Error(err)
+			}
 		}
-	}
-	if err != nil {
-		beego.Error(err)
 	}
 
 	this.Redirect("/topic/"+id, 302)
