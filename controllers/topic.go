@@ -3,6 +3,8 @@ package controllers
 import (
 	"github.com/astaxie/beego"
 	"myblog/models"
+	"os"
+	"path"
 )
 
 type TopicController struct {
@@ -58,23 +60,55 @@ func (this *TopicController) Add() {
 }
 
 func (this *TopicController) Post() {
+
 	if !checkAccount(this.Ctx) {
 		this.Redirect("/login", 302)
 		return
 	}
+
+	var err error
 	title := this.Input().Get("title")
 	category := this.Input().Get("category")
 	content := this.Input().Get("content")
 	id := this.Input().Get("id")
-	var err error
+
+	_, fh, err := this.GetFile("attachment")
+	if err != nil {
+		beego.Error(err)
+	}
+
+	var attachment string
+	if fh != nil {
+		attachment = fh.Filename
+		beego.Info(attachment)
+	}
 	if len(id) == 0 {
-		err = models.AddTopic(title, category, content)
+		tid, err := models.AddTopic(title, category, content, attachment)
+		if err != nil {
+			beego.Error(err)
+		}
+		os.Mkdir(path.Join("attachment", string(tid)), os.ModePerm)
+		err = this.SaveToFile("attachment", path.Join("attachment", string(tid), attachment))
 	} else {
-		err = models.ModifyTopic(id, title, category, content)
+		oldAttach := this.Input().Get("oldAttach")
+		if oldAttach != attachment {
+			os.Remove(path.Join("attachment", id, oldAttach))
+		}
+		if len(attachment) == 0 {
+			err = models.ModifyTopic(id, title, category, content, oldAttach)
+		} else {
+			os.Mkdir(path.Join("attachment", id), os.ModePerm)
+			err = this.SaveToFile("attachment", path.Join("attachment", id, attachment))
+			if err != nil {
+				beego.Error(err)
+			}
+			err = models.ModifyTopic(id, title, category, content, attachment)
+		}
 	}
 	if err != nil {
 		beego.Error(err)
 	}
+
 	this.Redirect("/topic/"+id, 302)
 }
 func (this *TopicController) Delete() {
@@ -89,6 +123,7 @@ func (this *TopicController) Delete() {
 	if err != nil {
 		beego.Error(err)
 	}
+	os.RemoveAll(path.Join("attachment", id))
 	this.Redirect("/topic", 302)
 }
 

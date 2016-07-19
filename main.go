@@ -7,6 +7,7 @@ import (
 
 	"myblog/models"
 	_ "myblog/routers"
+	"os"
 )
 
 func init() {
@@ -23,6 +24,9 @@ func main() {
 
 	o := orm.NewOrm()
 	o.Using("default")
+
+	os.Mkdir("attachment", os.ModePerm)
+	beego.SetStaticPath("/attachment", "attachment")
 
 	category := new(models.Category)
 	topic := new(models.Topic)

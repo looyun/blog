@@ -1,6 +1,7 @@
 package models
 
 import (
+	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
 	"strconv"
 	"time"
@@ -73,30 +74,33 @@ func AddComment(tid, name, content string) error {
 	return err
 }
 
-func AddTopic(title, category, content string) error {
+func AddTopic(title, category, content, attachment string) (string, error) {
 	o := orm.NewOrm()
 
 	topic := &Topic{
-		Title:     title,
-		Category:  category,
-		Content:   content,
-		Created:   time.Now(),
-		Updated:   time.Now(),
-		ReplyTime: time.Now(),
+		Title:      title,
+		Category:   category,
+		Content:    content,
+		Attachment: attachment,
+		Created:    time.Now(),
+		Updated:    time.Now(),
+		ReplyTime:  time.Now(),
 	}
+	_, err := o.Insert(topic)
+	o.Read(topic)
+	id := topic.Id
 	cate := new(Category)
 	qs := o.QueryTable("category")
-	err := qs.Filter("title", category).One(cate)
+	err = qs.Filter("title", category).One(cate)
 	if err != nil {
-		return err
+		beego.Error(err)
 	}
 	cate.TopicCount++
 	_, err = o.Update(cate)
 	if err != nil {
-		return err
+		beego.Error(err)
 	}
-	_, err = o.Insert(topic)
-	return err
+	return strconv.FormatInt(id, 10), err
 }
 
 func AddCategory(name string) error {
@@ -162,7 +166,7 @@ func GetAllComment(tid string) ([]*Comment, error) {
 	o := orm.NewOrm()
 	cid, err := strconv.ParseInt(tid, 10, 64)
 	if err != nil {
-		return nil, err
+		beego.Error(err)
 	}
 
 	comm := make([]*Comment, 0)
@@ -233,18 +237,21 @@ func DelCategory(id string) error {
 	return err
 }
 
-func ModifyTopic(id, title, category, content string) error {
+func ModifyTopic(id, title, category, content, attachment string) error {
 	cid, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
 		return err
 	}
 	o := orm.NewOrm()
 	topic := &Topic{Id: cid}
+
 	var oldcate string
+	oldcate = topic.Category
+
 	if o.Read(topic) == nil {
-		oldcate = topic.Category
 		topic.Title = title
 		topic.Category = category
+		topic.Attachment = attachment
 		topic.Content = content
 		topic.Updated = time.Now()
 	}
