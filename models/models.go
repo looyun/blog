@@ -1,10 +1,11 @@
 package models
 
 import (
-	"github.com/astaxie/beego"
-	"github.com/astaxie/beego/orm"
 	"strconv"
 	"time"
+
+	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/orm"
 )
 
 type Category struct {
